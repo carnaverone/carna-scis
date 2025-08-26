@@ -1,0 +1,13 @@
+cat > .gitignore <<'EOF'
+# Zig
+zig-cache/
+zig-out/
+
+# OS/éditeurs
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/
+.idea/
+EOF
