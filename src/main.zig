@@ -2,7 +2,7 @@ const std = @import("std");
 const Sha256 = std.crypto.hash.sha2.Sha256;
 const Sha512 = std.crypto.hash.sha2.Sha512;
 
-const VERSION = "0.1.0";
+const VERSION = "0.1.1";
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
