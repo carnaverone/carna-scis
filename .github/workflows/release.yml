@@ -3,24 +3,26 @@ on:
   push:
     tags:
       - 'v*'
-  workflow_dispatch: {}   # permet de lancer à la main depuis l’onglet Actions
+  workflow_dispatch: {}
 
 jobs:
   build:
     name: Build ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
 
     steps:
       - uses: actions/checkout@v4
 
-      # INSTALL ZIG PROPRE (tous OS)
+      # Installe Zig de façon fiable (tous OS)
       - name: Setup Zig
-        uses: mlugg/setup-zig@v1
+        uses: mlugg/setup-zig@v2
         with:
-          version: latest   # tu peux pinner: 0.13.0 / 0.14.0
+          version: 0.15.1            # <-- pin vers une release stable
+          # mirror: 'https://pkg.machengine.org/zig'  # <-- décommente si 404 persiste (fallback)
 
       - name: Show Zig version
         run: zig version
