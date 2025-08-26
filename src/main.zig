@@ -37,7 +37,7 @@ pub fn main() !void {
     } else if (std.mem.eql(u8, cmd, "verify")) {
         if (args.len < 4) return try usage("verify <file> <digest_hex> [--sha512]");
         const path = args[2];
-        const want_hex = args[3];
+        const want_hex = stripWs(args[3]);
         const use512 = hasFlag(args, "--sha512");
         if (use512) {
             const got = try hashFile512(path);
@@ -91,17 +91,17 @@ fn help() !void {
     const w = std.io.getStdOut().writer();
     try w.print(
         \\carna-scis — outils Zig (hash, verify, rand, hex, secrets)
-    \\
-    \\Usage:
-    \\  carna-scis --help | --version
-    \\  carna-scis hash <file> [--sha512]
-    \\  carna-scis verify <file> <digest_hex> [--sha512]
-    \\  carna-scis rand [len]
-    \\  carna-scis hex enc [file|-]
-    \\  carna-scis hex dec [file|-]
-    \\  carna-scis secrets scan <path>
-    \\
-    , .{});
+        \\
+        \\Usage:
+        \\  carna-scis --help | --version
+        \\  carna-scis hash <file> [--sha512]
+        \\  carna-scis verify <file> <digest_hex> [--sha512]
+        \\  carna-scis rand [len]
+        \\  carna-scis hex enc [file|-]
+        \\  carna-scis hex dec [file|-]
+        \\  carna-scis secrets scan <path>
+        \\
+        , .{});
 }
 
 fn usage(u: []const u8) !void {
@@ -226,6 +226,23 @@ fn hashFile512(path: []const u8) ![64]u8 {
     return out;
 }
 
+fn hexEq(digest: anytype, hex_in: []const u8) bool {
+    var buf: [128]u8 = undefined;
+    const got = std.fmt.bufPrint(&buf, "{s}", .{ std.fmt.fmtSliceHexLower(digest) }) catch return false;
+
+    const clean = stripWs(hex_in);
+    if (clean.len != got.len) return false;
+
+    var i: usize = 0;
+    while (i < got.len) : (i += 1) {
+        const a = got[i];
+        var b = clean[i];
+        if (b >= 'A' and b <= 'Z') b = b + 32; // tolower
+        if (a != b) return false;
+    }
+    return true;
+}
+
 fn scanSecrets(alloc: std.mem.Allocator, root: []const u8) !void {
     var it = try std.fs.cwd().openDir(root, .{ .iterate = true }).walk(alloc);
     defer it.deinit();
@@ -252,7 +269,7 @@ fn scanSecrets(alloc: std.mem.Allocator, root: []const u8) !void {
     }
 
     if (hits == 0) try w.print("No obvious secrets found.\n", .{})
-        else try w.print("Found {d} potential secret(s).\n", .{hits});
+    else try w.print("Found {d} potential secret(s).\n", .{hits});
 }
 
 fn containsAny(hay: []const u8, needles: []const []const u8) bool {
