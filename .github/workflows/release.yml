@@ -3,6 +3,7 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch: {}   # permet de lancer à la main depuis l’onglet Actions
 
 jobs:
   build:
@@ -15,11 +16,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Installe Zig correctement sur tous les OS
+      # INSTALL ZIG PROPRE (tous OS)
       - name: Setup Zig
         uses: mlugg/setup-zig@v1
         with:
-          version: latest   # ou épingle: 0.13.0 / 0.14.0
+          version: latest   # tu peux pinner: 0.13.0 / 0.14.0
 
       - name: Show Zig version
         run: zig version
