@@ -2,12 +2,12 @@
 pkgname=carna-scis
 pkgver=0.1.0
 pkgrel=1
-pkgdesc="CLI Zig: hash/verify/rand/hex/secrets (portable)"
+pkgdesc="Zig CLI: hash/verify/rand/hex/secrets (portable, single binary)"
 arch=('x86_64' 'aarch64')
-url="https://github.com/<ton_user>/carna-scis"
+url="https://github.com/carnaverone/carna-scis"
 license=('MIT')
 depends=()
-makedepends=('zig')
+makedepends=('zig' 'git')
 source=("git+$url#tag=v$pkgver")
 sha256sums=('SKIP')
 
