@@ -1,0 +1,26 @@
+# Maintainer: Carnaverone <you@example.com>
+pkgname=carna-scis
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="CLI Zig: hash/verify/rand/hex/secrets (portable)"
+arch=('x86_64' 'aarch64')
+url="https://github.com/<ton_user>/carna-scis"
+license=('MIT')
+depends=()
+makedepends=('zig')
+source=("git+$url#tag=v$pkgver")
+sha256sums=('SKIP')
+
+build() {
+  cd "$pkgname"
+  zig build -Doptimize=ReleaseFast
+}
+
+package() {
+  cd "$pkgname"
+  install -Dm755 "zig-out/bin/carna-scis" "$pkgdir/usr/bin/carna-scis"
+  install -Dm644 "LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 "completions/carna-scis.bash" "$pkgdir/usr/share/bash-completion/completions/carna-scis"
+  install -Dm644 "completions/_carna-scis" "$pkgdir/usr/share/zsh/site-functions/_carna-scis"
+  install -Dm644 "man/carna-scis.1" "$pkgdir/usr/share/man/man1/carna-scis.1"
+}
