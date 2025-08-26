@@ -3,6 +3,7 @@ on:
   push:
     tags:
       - 'v*'
+
 jobs:
   build:
     name: Build ${{ matrix.os }}
@@ -10,21 +11,22 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+
     steps:
       - uses: actions/checkout@v4
-      - name: Install Zig (Ubuntu)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y zig
-      - name: Install Zig (macOS)
-        if: matrix.os == 'macos-latest'
-        run: brew install zig
-      - name: Install Zig (Windows)
-        if: matrix.os == 'windows-latest'
-        run: choco install -y zig
+
+      # Installe Zig correctement sur tous les OS
+      - name: Setup Zig
+        uses: mlugg/setup-zig@v1
+        with:
+          version: latest   # ou épingle: 0.13.0 / 0.14.0
+
+      - name: Show Zig version
+        run: zig version
+
       - name: Build
         run: zig build -Doptimize=ReleaseFast
+
       - name: Package
         shell: bash
         run: |
@@ -34,10 +36,12 @@ jobs:
           cp "$BIN" dist/
           cd dist
           if command -v sha256sum >/dev/null 2>&1; then sha256sum * > SHA256SUMS; else shasum -a 256 * > SHA256SUMS; fi
+
       - uses: actions/upload-artifact@v4
         with:
           name: carna-scis-${{ matrix.os }}
           path: dist/*
+
   publish:
     needs: build
     runs-on: ubuntu-latest
