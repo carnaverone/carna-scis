@@ -1,2 +1,10 @@
-# carna-scis
-Zig CLI: hash/verify/rand/hex/secrets. Portable, single binary. MIT.  Security/dev tool in Zig (hash, verify, secrets, hex, leak scan).  carna-scis: CLI utilities in Zig for integrity and secrets (MIT).  Zig CLI: SHA-256/512, random, hex encode/decode, token scan.  Small Zig toolbox for integrity, secrets, and hex conversions.
+carna-scis
+
+Zig CLI: hash / verify / rand / hex / secrets — portable, single-binary.
+License: MIT.
+
+A minimal, practical command-line tool for everyday integrity checks, quick secret generation, hex conversions, and a lightweight secret-leak scan. Built in pure Zig, with no external runtime dependencies.
+
+Table of Contents
+
+Features
