@@ -1,0 +1,29 @@
+.TH CARNA-SCIS 1 "Aug 2025" "carna-scis 0.1.0" "User Commands"
+.SH NAME
+carna-scis \- hash / verify / rand / hex / secrets
+.SH SYNOPSIS
+.B carna-scis
+.RI [ --help | --version ]
+.br
+.B carna-scis hash
+.I file
+.RI [ --sha512 ]
+.br
+.B carna-scis verify
+.I file digest_hex
+.RI [ --sha512 ]
+.br
+.B carna-scis rand
+.RI [ len ]
+.br
+.B carna-scis hex enc
+.RI [ file | - ]
+.br
+.B carna-scis hex dec
+.RI [ file | - ]
+.br
+.B carna-scis secrets scan
+.I path
+.SH DESCRIPTION
+Outil CLI minimal écrit en Zig : calcul d'empreintes SHA-256/512, vérification, génération de secrets,
+encodage/décodage hex et détection heuristique de secrets.
