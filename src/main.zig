@@ -50,7 +50,7 @@ pub fn main() !void {
     } else if (std.mem.eql(u8, cmd, "rand")) {
         var n: usize = 32;
         if (args.len >= 3) n = try parseUsize(args[2]);
-        var buf = try alloc.alloc(u8, n);
+        const buf = try alloc.alloc(u8, n);
         defer alloc.free(buf);
         std.crypto.random.bytes(buf);
         try printHexSlice(buf);
@@ -75,9 +75,10 @@ pub fn main() !void {
             return;
         } else return try usage("hex enc|dec [file|-]");
     } else if (std.mem.eql(u8, cmd, "secrets")) {
-        if (args.len < 4) return try usage("secrets scan <path>");
+        if (args.len < 3) return try usage("secrets scan <path>");
         const sub = args[2];
         if (!std.mem.eql(u8, sub, "scan")) return try usage("secrets scan <path>");
+        if (args.len < 4) return try usage("secrets scan <path>");
         const root = args[3];
         try scanSecrets(alloc, root);
         return;
@@ -118,7 +119,7 @@ fn fail(msg: []const u8) !void {
     try w.print("[FAIL] {s}\n", .{msg});
 }
 
-fn hasFlag(args: [][]u8, flag: []const u8) bool {
+fn hasFlag(args: []const []const u8, flag: []const u8) bool {
     for (args) |a| if (std.mem.eql(u8, a, flag)) return true;
     return false;
 }
@@ -137,19 +138,17 @@ fn printHexSlice(bytes: []const u8) !void {
     try w.print("{s}\n", .{std.fmt.fmtSliceHexLower(bytes)});
 }
 
-const MyError = error{InvalidHex, InvalidLength};
-
-fn fromHex(c: u8) MyError!u8 {
+fn fromHex(c: u8) !u8 {
     return switch (c) {
         '0'...'9' => c - '0',
         'a'...'f' => c - 'a' + 10,
         'A'...'F' => c - 'A' + 10,
-        else => MyError.InvalidHex,
+        else => error.InvalidHex,
     };
 }
 
 fn hexDecode(alloc: std.mem.Allocator, s: []const u8) ![]u8 {
-    if (s.len % 2 != 0) return MyError.InvalidLength;
+    if (s.len % 2 != 0) return error.InvalidLength;
     const n = s.len / 2;
     var out = try alloc.alloc(u8, n);
     var i: usize = 0;
@@ -173,7 +172,7 @@ fn isWs(c: u8) bool {
     return c == ' ' or c == '\n' or c == '\r' or c == '\t';
 }
 
-fn readInput(alloc: std.mem.Allocator, args: [][]u8, idx: usize) ![]u8 {
+fn readInput(alloc: std.mem.Allocator, args: []const []const u8, idx: usize) ![]u8 {
     if (args.len > idx) {
         const p = args[idx];
         if (std.mem.eql(u8, p, "-")) return try readAllStdin(alloc);
@@ -182,7 +181,7 @@ fn readInput(alloc: std.mem.Allocator, args: [][]u8, idx: usize) ![]u8 {
     return try readAllStdin(alloc);
 }
 
-fn readTextInput(alloc: std.mem.Allocator, args: [][]u8, idx: usize) ![]u8 {
+fn readTextInput(alloc: std.mem.Allocator, args: []const []const u8, idx: usize) ![]u8 {
     return readInput(alloc, args, idx);
 }
 
@@ -194,7 +193,7 @@ fn readAllStdin(alloc: std.mem.Allocator) ![]u8 {
 fn readAllFile(alloc: std.mem.Allocator, path: []const u8) ![]u8 {
     var file = try std.fs.cwd().openFile(path, .{});
     defer file.close();
-    return file.readToEndAlloc(alloc, 16 * 1024 * 1024);
+    return try file.readToEndAlloc(alloc, 16 * 1024 * 1024);
 }
 
 fn hashFile256(path: []const u8) ![32]u8 {
@@ -245,27 +244,45 @@ fn hexEq(digest: anytype, hex_in: []const u8) bool {
 }
 
 fn scanSecrets(alloc: std.mem.Allocator, root: []const u8) !void {
-    var it = try std.fs.cwd().openDir(root, .{ .iterate = true }).walk(alloc);
-    defer it.deinit();
+    var walker = try std.fs.cwd().openDir(root, .{ .iterate = true });
+    defer walker.close();
+
+    var stack = std.ArrayList([]const u8).init(alloc);
+    defer stack.deinit();
+    try stack.append(root);
 
     const w = std.io.getStdOut().writer();
     var hits: usize = 0;
 
-    while (try it.next()) |e| {
-        if (e.kind != .file) continue;
-        const info = try e.dir.statFile(e.basename);
-        if (info.size > 2 * 1024 * 1024) continue; // >2MB: skip
+    while (stack.items.len > 0) {
+        const path = stack.pop().?;
+        var dir = try std.fs.cwd().openDir(path, .{ .iterate = true });
+        defer dir.close();
 
-        var file = try e.dir.openFile(e.basename, .{});
-        defer file.close();
-        const data = try file.readToEndAlloc(alloc, @intCast(usize, info.size));
-        defer alloc.free(data);
+        var it = dir.iterate();
+        while (try it.next()) |entry| {
+            if (entry.kind == .directory) {
+                const sub_path = try std.fs.path.join(alloc, &[_][]const u8{ path, entry.name });
+                defer alloc.free(sub_path);
+                try stack.append(sub_path);
+            } else if (entry.kind == .file) {
+                const file_path = try std.fs.path.join(alloc, &[_][]const u8{ path, entry.name });
+                defer alloc.free(file_path);
+                const info = try std.fs.cwd().statFile(file_path);
+                if (info.size > 2 * 1024 * 1024) continue; // >2MB: skip
 
-        if (containsAny(data, &.{
-            "AKIA", "ghp_", "xoxb-", "sk_live_", "sk_test_", "AIza",
-        })) {
-            hits += 1;
-            try w.print("[!] {s}/{s}\n", .{ e.path, e.basename });
+                var file = try std.fs.cwd().openFile(file_path, .{});
+                defer file.close();
+                const data = try file.readToEndAlloc(alloc, 16 * 1024 * 1024);
+                defer alloc.free(data);
+
+                if (containsAny(data, &.{
+                    "AKIA", "ghp_", "xoxb-", "sk_live_", "sk_test_", "AIza",
+                })) {
+                    hits += 1;
+                    try w.print("[!] {s}\n", .{ file_path });
+                }
+            }
         }
     }
 
