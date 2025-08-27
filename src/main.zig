@@ -91,17 +91,17 @@ fn help() !void {
     const w = std.io.getStdOut().writer();
     try w.print(
         \\carna-scis — outils Zig (hash, verify, rand, hex, secrets)
-        \\
-        \\Usage:
-        \\  carna-scis --help | --version
-        \\  carna-scis hash <file> [--sha512]
-        \\  carna-scis verify <file> <digest_hex> [--sha512]
-        \\  carna-scis rand [len]
-        \\  carna-scis hex enc [file|-]
-        \\  carna-scis hex dec [file|-]
-        \\  carna-scis secrets scan <path>
-        \\
-        , .{});
+    \\
+    \\Usage:
+    \\  carna-scis --help | --version
+    \\  carna-scis hash <file> [--sha512]
+    \\  carna-scis verify <file> <digest_hex> [--sha512]
+    \\  carna-scis rand [len]
+    \\  carna-scis hex enc [file|-]
+    \\  carna-scis hex dec [file|-]
+    \\  carna-scis secrets scan <path>
+    \\
+    , .{});
 }
 
 fn usage(u: []const u8) !void {
@@ -287,7 +287,7 @@ fn scanSecrets(alloc: std.mem.Allocator, root: []const u8) !void {
     }
 
     if (hits == 0) try w.print("No obvious secrets found.\n", .{})
-    else try w.print("Found {d} potential secret(s).\n", .{hits});
+        else try w.print("Found {d} potential secret(s).\n", .{hits});
 }
 
 fn containsAny(hay: []const u8, needles: []const []const u8) bool {
