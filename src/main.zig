@@ -9,7 +9,7 @@ pub fn main() !void {
     defer _ = gpa.deinit();
     const alloc = gpa.allocator();
 
-    var args = try std.process.argsAlloc(alloc);
+    const args = try std.process.argsAlloc(alloc);
     defer std.process.argsFree(alloc, args);
 
     if (args.len < 2) return try help();
@@ -50,7 +50,7 @@ pub fn main() !void {
     } else if (std.mem.eql(u8, cmd, "rand")) {
         var n: usize = 32;
         if (args.len >= 3) n = try parseUsize(args[2]);
-        var buf = try alloc.alloc(u8, n);
+        const buf = try alloc.alloc(u8, n);
         defer alloc.free(buf);
         std.crypto.random.bytes(buf);
         try printHexSlice(buf);
@@ -119,7 +119,7 @@ fn fail(msg: []const u8) !void {
     try w.print("[FAIL] {s}\n", .{msg});
 }
 
-fn hasFlag(args: [][]u8, flag: []const u8) bool {
+fn hasFlag(args: []const [:0]u8, flag: []const u8) bool {
     for (args) |a| if (std.mem.eql(u8, a, flag)) return true;
     return false;
 }
@@ -137,6 +137,11 @@ fn printHexSlice(bytes: []const u8) !void {
     const w = std.io.getStdOut().writer();
     try w.print("{s}\n", .{std.fmt.fmtSliceHexLower(bytes)});
 }
+
+const error = struct {
+    InvalidHex: error{},
+    InvalidLength: error{},
+};
 
 fn fromHex(c: u8) !u8 {
     return switch (c) {
@@ -172,7 +177,7 @@ fn isWs(c: u8) bool {
     return c == ' ' or c == '\n' or c == '\r' or c == '\t';
 }
 
-fn readInput(alloc: std.mem.Allocator, args: [][]u8, idx: usize) ![]u8 {
+fn readInput(alloc: std.mem.Allocator, args: []const [:0]u8, idx: usize) ![]u8 {
     if (args.len > idx) {
         const p = args[idx];
         if (std.mem.eql(u8, p, "-")) return try readAllStdin(alloc);
@@ -181,7 +186,7 @@ fn readInput(alloc: std.mem.Allocator, args: [][]u8, idx: usize) ![]u8 {
     return try readAllStdin(alloc);
 }
 
-fn readTextInput(alloc: std.mem.Allocator, args: [][]u8, idx: usize) ![]u8 {
+fn readTextInput(alloc: std.mem.Allocator, args: []const [:0]u8, idx: usize) ![]u8 {
     return readInput(alloc, args, idx);
 }
 
