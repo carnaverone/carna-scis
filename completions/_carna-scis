@@ -1,0 +1,4 @@
+#compdef carna-scis
+_arguments \
+  '1:cmd:(hash verify rand hex secrets --help --version -h -V)' \
+  '2:subcmds:(enc dec scan)'

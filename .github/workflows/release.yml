@@ -1,0 +1,57 @@
+name: release
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Installe Zig de façon fiable (tous OS)
+      - name: Setup Zig
+        uses: mlugg/setup-zig@v2
+        with:
+          version: 0.15.1            # <-- pin vers une release stable
+          # mirror: 'https://pkg.machengine.org/zig'  # <-- décommente si 404 persiste (fallback)
+
+      - name: Show Zig version
+        run: zig version
+
+      - name: Build
+        run: zig build -Doptimize=ReleaseFast
+
+      - name: Package
+        shell: bash
+        run: |
+          mkdir dist
+          BIN="zig-out/bin/carna-scis"
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then BIN="zig-out/bin/carna-scis.exe"; fi
+          cp "$BIN" dist/
+          cd dist
+          if command -v sha256sum >/dev/null 2>&1; then sha256sum * > SHA256SUMS; else shasum -a 256 * > SHA256SUMS; fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: carna-scis-${{ matrix.os }}
+          path: dist/*
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*
